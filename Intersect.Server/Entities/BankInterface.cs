@@ -257,7 +257,7 @@ namespace Intersect.Server.Entities
             if (slot >= 0 && slot < mMaxSlots)
             {
                 // Is this slot empty?
-                if (IsSlotOpen(slot) || item.ItemId == mBank[slot].ItemId)
+                if (IsSlotOpen(slot) || item.ItemId == mBank[slot].ItemId && mBank[slot].Descriptor.IsStackable)
                 {
                     // It is! Can we store the full quantity of this item though?
                     return CanStoreItem(item);

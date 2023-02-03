@@ -707,8 +707,7 @@ namespace Intersect.Client.Entities
         //bank
         public void TryDepositItem(int inventorySlotIndex, int bankSlotIndex = -1)
         {
-            var inventorySlot = Inventory[inventorySlotIndex];
-            if (!ItemBase.TryGet(inventorySlot.ItemId, out var itemDescriptor))
+            if (!ItemBase.TryGet(Inventory[inventorySlotIndex].ItemId, out var itemDescriptor))
             {
                 return;
             }
@@ -717,44 +716,48 @@ namespace Intersect.Client.Entities
             if (Globals.GuildBank)
             {
                 var rank = Globals.Me.GuildRank;
-                if (string.IsNullOrWhiteSpace(Globals.Me.Guild) || (!rank.Permissions.BankDeposit && Globals.Me.Rank != 0))
+                if (string.IsNullOrWhiteSpace(Globals.Me.Guild) ||
+                    (!rank.Permissions.BankDeposit && Globals.Me.Rank != 0))
                 {
-                    ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Guilds.NotAllowedDeposit.ToString(Globals.Me.Guild), CustomColors.Alerts.Error, ChatMessageType.Bank));
+                    ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Guilds.NotAllowedDeposit.ToString(Globals.Me.Guild),
+                        CustomColors.Alerts.Error, ChatMessageType.Bank));
                     return;
                 }
             }
 
             var inventoryQuantity = GetQuantityOfItemInInventory(itemDescriptor.Id);
-            if (inventorySlot.Quantity < 2)
-            {
-                PacketSender.SendDepositItem(inventorySlotIndex, 1, bankSlotIndex);
-            }
-
             var userData = new int[2] { inventorySlotIndex, bankSlotIndex };
 
-            InputBox.Open(
-                title: Strings.Bank.deposititem,
-                prompt: Strings.Bank.deposititemprompt.ToString(itemDescriptor.Name),
-                modal: true,
-                inputType: InputBox.InputType.NumericSliderInput,
-                onSuccess: DepositItemInputBoxOkay,
-                onCancel: null,
-                userData: userData,
-                quantity: inventorySlot.Quantity,
-                maxQuantity: inventoryQuantity
-            );
+            if (inventoryQuantity > 1 && itemDescriptor.IsStackable)
+            {
+                InputBox.Open(
+                    title: Strings.Bank.deposititem,
+                    prompt: Strings.Bank.deposititemprompt.ToString(itemDescriptor.Name),
+                    modal: true,
+                    inputType: InputBox.InputType.NumericSliderInput,
+                    onSuccess: DepositItemInputBoxOkay,
+                    onCancel: null,
+                    userData: userData,
+                    quantity: inventoryQuantity,
+                    maxQuantity: inventoryQuantity
+                );
+                return;
+            }
 
+            PacketSender.SendDepositItem(userData[0], 1, userData[1]);
         }
 
         private void DepositItemInputBoxOkay(object sender, EventArgs e)
         {
             var value = (int)Math.Round(((InputBox)sender).Value);
-            if (value > 0)
+            if (value <= 0)
             {
-                var userData = (int[])((InputBox)sender).UserData;
-
-                PacketSender.SendDepositItem(userData[0], value, userData[1]);
+                return;
             }
+
+            var userData = (int[])((InputBox)sender).UserData;
+
+            PacketSender.SendDepositItem(userData[0], value, userData[1]);
         }
 
         public void TryWithdrawItem(int bankSlotIndex, int inventorySlotIndex = -1)
