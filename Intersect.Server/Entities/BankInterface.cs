@@ -256,8 +256,11 @@ namespace Intersect.Server.Entities
             // Is this a valid item and slot?
             if (slot >= 0 && slot < mMaxSlots)
             {
-                // Is this slot empty?
-                if (IsSlotOpen(slot) || item.ItemId == mBank[slot].ItemId && mBank[slot].Descriptor.IsStackable)
+                var itemInBankSlot = mBank[slot];
+                // Is this slot empty? is the item we are about to deposit stackable? if so, is there enough space?
+                if (IsSlotOpen(slot) ||
+                    (item.ItemId == itemInBankSlot.ItemId && itemInBankSlot.Descriptor.IsStackable) &&
+                    (item.Quantity + itemInBankSlot.Quantity <= itemInBankSlot.Descriptor.MaxBankStack))
                 {
                     // It is! Can we store the full quantity of this item though?
                     return CanStoreItem(item);
